@@ -6,7 +6,9 @@ import { printCanvas } from './printer.js';
 
 const LOG_KEY = 'fridge.log';
 const PRINTED_KEY = 'fridge.printedDay';
-const demo = new URLSearchParams(location.search).has('demo');
+const params = new URLSearchParams(location.search);
+const demo = params.has('demo');
+const showAll = params.has('all');
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('preview');
@@ -81,6 +83,7 @@ $('collect').addEventListener('click', async () => {
           namePrefix: CONFIG.sensorNamePrefix,
           hours: CONFIG.windowHours,
           maxRecords: CONFIG.maxRecords,
+          showAll,
           onProgress: (n) => status(`Чтение журнала: ${n} записей…`),
         });
     save(LOG_KEY, log);
@@ -94,7 +97,7 @@ $('collect').addEventListener('click', async () => {
       log.complete ? 'ok' : 'bad',
     );
   } catch (e) {
-    status(`Ошибка датчика: ${e.message}`, 'bad');
+    status(`Ошибка датчика: ${(e && e.message) || String(e)}`, 'bad');
   } finally {
     show();
   }
@@ -109,7 +112,7 @@ $('print').addEventListener('click', async () => {
     save(PRINTED_KEY, printedDay);
     status(`Отчёт напечатан на ${res.printer}. Автоотключение: ${res.shutdown}.`, 'ok');
   } catch (e) {
-    status(`Ошибка принтера: ${e.message}`, 'bad');
+    status(`Ошибка принтера: ${(e && e.message) || String(e)}`, 'bad');
   } finally {
     show();
   }

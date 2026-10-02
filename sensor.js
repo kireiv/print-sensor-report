@@ -35,16 +35,26 @@ async function write(ch, bytes) {
 const u32le = (n) => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
 
 // Must be called from a user gesture.
-export async function collectLog({ namePrefix, hours, maxRecords, onProgress }) {
-  const device = await navigator.bluetooth.requestDevice({
-    filters: [{ namePrefix }],
-    optionalServices: [SERVICE],
-  });
+export async function collectLog({ namePrefix, hours, maxRecords, onProgress, showAll }) {
+  // Bluefy rejects with values that carry no message, so each step names itself
+  const step = (name, promise) =>
+    promise.catch((e) => {
+      const detail = (e && (e.message || e.name)) || (e === undefined ? 'нет описания' : String(e));
+      throw new Error(`${name}: ${detail}`);
+    });
+  const device = await step(
+    'выбор датчика',
+    navigator.bluetooth.requestDevice(
+      showAll
+        ? { acceptAllDevices: true, optionalServices: [SERVICE] }
+        : { filters: [{ namePrefix }], optionalServices: [SERVICE] },
+    ),
+  );
   const tStart = performance.now();
-  const server = await device.gatt.connect();
+  const server = await step('подключение', device.gatt.connect());
   try {
-    const service = await server.getPrimaryService(SERVICE);
-    const ch = await service.getCharacteristic(CHARACTERISTIC);
+    const service = await step('сервис 1F10', server.getPrimaryService(SERVICE));
+    const ch = await step('характеристика 1F1F', service.getCharacteristic(CHARACTERISTIC));
     const connectMs = performance.now() - tStart;
 
     const replies = new Map();
@@ -73,7 +83,7 @@ export async function collectLog({ namePrefix, hours, maxRecords, onProgress }) 
       // the sensor sends newest first; stop once the window is covered
       if (prev && prev.time > r.time && r.time < cutoff) reachedCutoff = true;
     });
-    await ch.startNotifications();
+    await step('подписка на уведомления', ch.startNotifications());
 
     const ask = async (bytes, timeoutMs = 2000) => {
       replies.delete(bytes[0]);
