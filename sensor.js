@@ -85,12 +85,16 @@ export async function collectLog({ namePrefix, hours, maxRecords, onProgress, sh
     });
     await step('подписка на уведомления', ch.startNotifications());
 
-    const ask = async (bytes, timeoutMs = 2000) => {
-      replies.delete(bytes[0]);
-      await write(ch, bytes);
-      const until = performance.now() + timeoutMs;
-      while (!replies.has(bytes[0]) && performance.now() < until) await sleep(30);
-      return replies.get(bytes[0]) || null;
+    // the sensor drops the first write after a connect and answers slowly, so reads retry
+    const ask = async (bytes, tries = 3, timeoutMs = 4000) => {
+      for (let i = 0; i < tries; i++) {
+        replies.delete(bytes[0]);
+        await write(ch, bytes);
+        const until = performance.now() + timeoutMs;
+        while (!replies.has(bytes[0]) && performance.now() < until) await sleep(30);
+        if (replies.has(bytes[0])) return replies.get(bytes[0]);
+      }
+      return null;
     };
 
     const tm = await ask([CMD_UTC_TIME]);
@@ -114,7 +118,7 @@ export async function collectLog({ namePrefix, hours, maxRecords, onProgress, sh
 
     // pvvx tools keep local time in the device clock
     const local = Math.floor(Date.now() / 1000) - new Date().getTimezoneOffset() * 60;
-    await ask([CMD_UTC_TIME, ...u32le(local)], 1000);
+    await ask([CMD_UTC_TIME, ...u32le(local)], 1, 3000);
 
     return {
       name: device.name || namePrefix,
