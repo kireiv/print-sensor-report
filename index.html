@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Журнал холодильной камеры</title>
+<style>
+  body { font: 17px -apple-system, Helvetica, Arial, sans-serif; margin: 0; padding: 16px; background: #f2f2f2; color: #111; }
+  main { max-width: 420px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .buttons { display: flex; gap: 12px; }
+  button { flex: 1; font: inherit; font-weight: 600; padding: 18px 8px; border: 0; border-radius: 10px; background: #1c4f8a; color: #fff; }
+  button:disabled { background: #9aa6b2; }
+  button.due { background: #1b7a3a; }
+  #status { margin: 14px 0; padding: 12px; border-radius: 10px; background: #fff; line-height: 1.35; }
+  #status.ok { background: #dff3e4; }
+  #status.bad { background: #fbe0de; }
+  canvas { display: block; width: 100%; max-width: 384px; margin: 0 auto; background: #fff; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Журнал холодильной камеры</h1>
+  <div class="buttons">
+    <button id="collect">1. Собрать</button>
+    <button id="print" disabled>2. Печать</button>
+  </div>
+  <div id="status"></div>
+  <canvas id="preview" hidden></canvas>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
