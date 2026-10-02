@@ -127,3 +127,12 @@ if (!navigator.bluetooth && !demo) {
   status('Данных нет. Подойти к датчику и нажать «Собрать».');
 }
 show();
+
+if (navigator.bluetooth && navigator.bluetooth.getAvailability) {
+  navigator.bluetooth.getAvailability().then(
+    (ok) => {
+      if (!ok) status('Bluetooth недоступен. Включить Bluetooth на телефоне и разрешить его для Bluefy.', 'bad');
+    },
+    () => {},
+  );
+}

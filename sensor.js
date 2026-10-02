@@ -37,19 +37,31 @@ const u32le = (n) => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) 
 // Must be called from a user gesture.
 export async function collectLog({ namePrefix, hours, maxRecords, onProgress, showAll }) {
   // Bluefy rejects with values that carry no message, so each step names itself
+  const describe = (e) => {
+    if (e && (e.message || e.name)) return [e.name, e.message].filter(Boolean).join(' ');
+    let json = '';
+    try {
+      json = JSON.stringify(e);
+    } catch (x) {
+      // not serialisable
+    }
+    return `${typeof e} ${String(e)} ${json || ''}`.trim();
+  };
   const step = (name, promise) =>
-    promise.catch((e) => {
-      const detail = (e && (e.message || e.name)) || (e === undefined ? 'нет описания' : String(e));
-      throw new Error(`${name}: ${detail}`);
+    Promise.resolve(promise).catch((e) => {
+      throw new Error(`${name}: ${describe(e)}`);
     });
-  const device = await step(
-    'выбор датчика',
-    navigator.bluetooth.requestDevice(
-      showAll
-        ? { acceptAllDevices: true, optionalServices: [SERVICE] }
-        : { filters: [{ namePrefix }], optionalServices: [SERVICE] },
-    ),
-  );
+  const bt = navigator.bluetooth;
+  const byName = { filters: [{ namePrefix }], optionalServices: [SERVICE] };
+  const anyDevice = { acceptAllDevices: true, optionalServices: [SERVICE] };
+  let device;
+  try {
+    device = await step('выбор датчика', bt.requestDevice(showAll ? anyDevice : byName));
+  } catch (first) {
+    if (showAll) throw first;
+    // some browsers refuse a name filter; offer the full list instead
+    device = await step(`${first.message}. Выбор из всех устройств`, bt.requestDevice(anyDevice));
+  }
   const tStart = performance.now();
   const server = await step('подключение', device.gatt.connect());
   try {
